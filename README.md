@@ -1,2 +1,2 @@
-# PARADIM_Cornell_Calendar
-Script to assist in time keeping for proposals tracked in google calendar. 
+# PARADIM Cornell Calendar
+This is a script written to help track time instruments were in use for specific proposals. This script scrapes all events from the Cornell lab Google calendar kepy by Matt Barone. Events are then sorted and only events with proposal numbers are added to an excel sheet along with the times when the proposal was using an instrument. The current working version is testingfile.py. More work needs to be done on refreshing tokens for authentification. 
