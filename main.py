@@ -1,8 +1,8 @@
 import datetime
 import os.path
+from pandas import DataFrame
 
-
-from google.auth.transport.requests import requests
+from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
@@ -24,9 +24,12 @@ def main():
     creds = Credentials.from_authorized_user_file("token.json", SCOPES)
   # If there are no (valid) credentials available, let the user log in.
   if not creds or not creds.valid:
-    if creds and creds.expired and creds.refresh_token:
-      creds.refresh(Request())
-    else:
+    try:
+      if creds and creds.expired and creds.refresh_token:
+        creds.refresh(Request())
+      else:
+        raise ValueError()
+    except:
       flow = InstalledAppFlow.from_client_secrets_file(
           "credentials.json", SCOPES
       )
@@ -35,6 +38,7 @@ def main():
     with open("token.json", "w") as token:
       token.write(creds.to_json())
 
+  try:
     service = build("calendar", "v3", credentials=creds)
 
     # Call the Calendar API
@@ -45,13 +49,13 @@ def main():
         .list(
             calendarId="okvnvt57fklmv6ctnsbrd32f1o@group.calendar.google.com",
             timeMin=now,
-            maxResults=10,
             singleEvents=True,
             orderBy="startTime",
         )
         .execute()
     )
     events = events_result.get("items", [])
+    props = [[],[],[]]
 
     if not events:
       print("No upcoming events found.")
@@ -61,8 +65,20 @@ def main():
     for event in events:
       start = event["start"].get("dateTime", event["start"].get("date"))
       end = event["end"].get("dateTime", event["end"].get("date"))
-      print(start, end, event["summary"])
+      summary = event["summary"]
+      if '#' in summary: 
+        props[0] = props[0] + [start]
+        props[1] = props[1] + [end]
+        props[2] = props[2] + [summary]
+        print(start, event["summary"])
+        print(end, event["summary"])
 
+
+    df = DataFrame({'Prop Number': props[2], 'Start Date': props[0], 'End Date': props[1]})
+    df.to_excel('Calendar.xlsx', sheet_name='sheet1', index=False)
+
+  except HttpError as error:
+    print(f"An error occurred: {error}")
 
 
 if __name__ == "__main__":
