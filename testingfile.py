@@ -1,5 +1,6 @@
 import datetime
 import os.path
+from pandas import DataFrame
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -23,9 +24,12 @@ def main():
     creds = Credentials.from_authorized_user_file("token.json", SCOPES)
   # If there are no (valid) credentials available, let the user log in.
   if not creds or not creds.valid:
-    if creds and creds.expired and creds.refresh_token:
-      creds.refresh(Request())
-    else:
+    try:
+      if creds and creds.expired and creds.refresh_token:
+        creds.refresh(Request())
+      else:
+        raise ValueError()
+    except:
       flow = InstalledAppFlow.from_client_secrets_file(
           "credentials.json", SCOPES
       )
@@ -39,19 +43,18 @@ def main():
 
     # Call the Calendar API
     now = datetime.datetime.utcnow().isoformat() + "Z"  # 'Z' indicates UTC time
-    print("Getting the upcoming 10 events")
     events_result = (
         service.events()
         .list(
             calendarId="okvnvt57fklmv6ctnsbrd32f1o@group.calendar.google.com",
             timeMin=now,
-            maxResults=10,
             singleEvents=True,
             orderBy="startTime",
         )
         .execute()
     )
     events = events_result.get("items", [])
+    props = [[],[],[]]
 
     if not events:
       print("No upcoming events found.")
@@ -60,7 +63,18 @@ def main():
     # Prints the start and name of the next 10 events
     for event in events:
       start = event["start"].get("dateTime", event["start"].get("date"))
-      print(start, event["summary"])
+      end = event["end"].get("dateTime", event["end"].get("date"))
+      summary = event["summary"]
+      if '#' in summary: 
+        props[0] = props[0] + [start]
+        props[1] = props[1] + [end]
+        props[2] = props[2] + [summary]
+        print(start, event["summary"])
+        print(end, event["summary"])
+
+
+    df = DataFrame({'Prop Number': props[2], 'Start Date': props[0], 'End Date': props[1]})
+    df.to_excel('Calendar.xlsx', sheet_name='sheet1', index=False)
 
   except HttpError as error:
     print(f"An error occurred: {error}")
